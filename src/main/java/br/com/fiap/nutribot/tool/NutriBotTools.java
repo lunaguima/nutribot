@@ -23,7 +23,7 @@ public class NutriBotTools {
 
     @Tool(description = "Busca as informações nutricionais e calóricas (por 100g) de um alimento pelo nome na tabela da clínica.")
     public Object buscarAlimento(
-            @ToolParam(description = "Nome simples do alimento no singular, ex: tapioca, ovo, arroz") String nomeAlimento) {
+            @ToolParam(description = "Nome do alimento, ex: tapioca, pão de queijo, ovo, arroz") String nomeAlimento) {
         try {
             String limpo = limparNomeAlimento(nomeAlimento);
             return foodService.findByName(limpo);
@@ -32,53 +32,45 @@ public class NutriBotTools {
         }
     }
 
-    @Tool(description = "Consulta o resumo do dia de hoje do paciente: calorias consumidas, meta diária e quantas calorias ainda pode comer hoje.")
+    @Tool(description = "Retorna o resumo do diário nutricional do paciente hoje (calorias consumidas, meta diária e calorias restantes).")
     public SummaryResponse resumoDoDia(
-            @ToolParam(description = "Data ou período, envie sempre 'hoje'") String data) {
+            @ToolParam(description = "Envie sempre 'hoje'") String periodo) {
         return mealService.summary(LocalDate.now());
     }
 
-    @Tool(description = "Registra uma refeição consumida pelo paciente no diário alimentar de hoje.")
+    @Tool(description = "Registra um alimento consumido no diário alimentar de hoje.")
     public String registrarRefeicao(
-            @ToolParam(description = "Nome do alimento no singular, ex: ovo, tapioca, banana") String nomeAlimento,
-            @ToolParam(description = "Quantidade em gramas, ex: 100.0") Double gramas,
-            @ToolParam(description = "Refeição: BREAKFAST, LUNCH, DINNER ou SNACK") String tipoRefeicao) {
+            @ToolParam(description = "Nome do alimento, ex: Ovo cozido, Pão de queijo, Banana prata") String nomeAlimento,
+            @ToolParam(description = "Quantidade em gramas (ex: 100.0). Se for em unidades como 2 ovos, envie 100.0") Double gramas,
+            @ToolParam(description = "Tipo da refeição: BREAKFAST, LUNCH, DINNER ou SNACK") MealType tipoRefeicao) {
         try {
-            double peso = (gramas != null && gramas > 0) ? gramas : 100.0;
+            double peso = (gramas == null || gramas <= 0) ? 100.0 : (gramas <= 10 ? gramas * 50.0 : gramas);
             String nomeLimpo = limparNomeAlimento(nomeAlimento);
-            MealType mealType = converterMealType(tipoRefeicao);
+            MealType mealType = tipoRefeicao != null ? tipoRefeicao : MealType.BREAKFAST;
 
             MealEntry entry;
             try {
                 entry = mealService.log(nomeLimpo, peso, mealType);
             } catch (ResponseStatusException ex) {
-                // Se veio "ovo cozido" ou "ovos" e não achou de primeira, pega só a primeira palavra no singular ("ovo")
                 String primeiraPalavra = nomeLimpo.split("\\s+")[0].replaceAll("(?i)s$", "");
                 entry = mealService.log(primeiraPalavra, peso, mealType);
             }
 
-            return String.format("Refeição registrada com sucesso no diário: %.0fg de %s no %s (%.0f kcal).",
+            return String.format("Refeição registrada com sucesso: %.1fg de %s no %s (%.1f kcal)",
                     entry.getGrams(), entry.getFood().getName(), entry.getMealType(), entry.calories());
-        } catch (Exception e) {
-            return "Erro ao registrar: " + e.getMessage();
+        } catch (ResponseStatusException e) {
+            return "Não foi possível registrar a refeição: " + e.getReason();
         }
     }
 
     private String limparNomeAlimento(String raw) {
         if (raw == null || raw.isBlank()) return "Ovo";
-        String limpo = raw.replaceAll("(?i)\\b(\\d+|dois|duas|um|uma|tres|três|gramas|g|de|no|na)\\b", "").trim();
+        String limpo = raw.trim()
+                .replaceFirst("(?i)^(\\d+([.,]\\d+)?\\s*((gramas?|g)\\b)?|(um|uma|dois|duas|tr[eê]s)\\b)\\s*(de\\s+)?", "")
+                .trim();
         if (limpo.toLowerCase().startsWith("ovos")) {
             limpo = limpo.replaceFirst("(?i)ovos", "ovo");
         }
         return limpo.isBlank() ? raw.trim() : limpo;
-    }
-
-    private MealType converterMealType(String tipo) {
-        if (tipo == null) return MealType.BREAKFAST;
-        String t = tipo.toUpperCase();
-        if (t.contains("LUNCH") || t.contains("ALMO")) return MealType.LUNCH;
-        if (t.contains("DINNER") || t.contains("JANT")) return MealType.DINNER;
-        if (t.contains("SNACK") || t.contains("LANCH")) return MealType.SNACK;
-        return MealType.BREAKFAST;
     }
 }

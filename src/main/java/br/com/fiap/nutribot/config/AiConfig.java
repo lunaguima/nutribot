@@ -32,15 +32,13 @@ public class AiConfig {
 
     private static final String PERSONA_SYSTEM_PROMPT = """
             Você é a NutriBot, assistente virtual da Clínica Equilíbrio.
-            Regras de comportamento:
-            1. Responda SEMPRE em português, em texto natural (NUNCA responda com blocos JSON ou {"name":...}).
-            2. Se o usuário disser o nome dele ou perguntar qual é o nome dele, responda diretamente usando a memória da conversa. NÃO chame nenhuma tool para nomes ou saudações.
-            3. Se a pergunta for sobre programação, esportes, política ou qualquer assunto fora de nutrição e da Clínica Equilíbrio, recuse educadamente dizendo que só pode ajudar com nutrição.
-            4. Nunca prescreva dietas clínicas nem dê diagnósticos, e lembre que você não substitui o nutricionista.
-            5. Use as ferramentas (tools) APENAS nestes 3 casos:
-               - Buscar calorias/nutrientes de um alimento na tabela;
-               - Consultar o resumo calórico do dia;
-               - Registrar uma refeição que o paciente comeu.
+            - Responda sempre em português, com tom acolhedor, respostas curtas e sem julgamento.
+            - Recuse educadamente assuntos que não sejam sobre nutrição ou sobre a Clínica Equilíbrio.
+            - Você apoia o paciente entre as consultas, mas nunca substitui o nutricionista.
+            - Não prescreva dietas, medicamentos nem suplementos; não faça diagnósticos clínicos.
+            - Nunca use termos como "dieta da fome", "proibido" ou "dia do lixo".
+            - Use as tools registradas apenas para buscar alimentos na tabela, consultar o resumo do dia ou registrar refeições consumidas.
+            - Para saudações, conversas gerais ou perguntas sobre mensagens anteriores (como saber o nome do paciente), responda diretamente em texto natural, sem chamar nenhuma tool.
             """;
 
     private static final String RAG_PROMPT_TEMPLATE = """
@@ -48,7 +46,7 @@ public class AiConfig {
             {query}
 
             ---------------------
-            Documentos de referência da Clínica Equilíbrio (use APENAS se a mensagem do usuário for uma dúvida sobre regras da clínica, horários, hidratação/água ou orientações nutricionais; ignore completamente estes documentos se o usuário estiver apenas conversando, dizendo o nome ou falando de assuntos fora de nutrição):
+            Documentos de referência da Clínica Equilíbrio (use se a pergunta for sobre regras da clínica, horários, hidratação/água ou guia alimentar; ignore se for apenas saudação, nome do usuário ou assunto fora de nutrição):
             {question_answer_context}
             ---------------------
             """;
@@ -68,19 +66,15 @@ public class AiConfig {
     @Bean
     public ApplicationRunner initRAG(VectorStore vectorStore, @Value("classpath*:docs/*.*") Resource[] docs) {
         return args -> {
-            try {
-                for (Resource doc : docs) {
-                    if (doc.exists()) {
-                        TextReader reader = new TextReader(doc);
-                        TokenTextSplitter splitter = TokenTextSplitter.builder().build();
-                        List<Document> documents = splitter.split(reader.read());
-                        vectorStore.add(documents);
-                    }
+            for (Resource doc : docs) {
+                if (doc.exists()) {
+                    TextReader reader = new TextReader(doc);
+                    TokenTextSplitter splitter = TokenTextSplitter.builder().build();
+                    List<Document> documents = splitter.split(reader.read());
+                    vectorStore.add(documents);
                 }
-                log.info("Documentos do RAG carregados com sucesso!");
-            } catch (Exception e) {
-                log.error("Erro ao carregar embeddings no RAG: {}", e.getMessage());
             }
+            log.info("Documentos do RAG carregados com sucesso!");
         };
     }
 
@@ -88,7 +82,8 @@ public class AiConfig {
     public ChatClient chatClient(
             ChatClient.Builder builder,
             ChatMemory chatMemory,
-            VectorStore vectorStore) {
+            VectorStore vectorStore,
+            NutriBotTools nutriBotTools) {
 
         QuestionAnswerAdvisor ragAdvisor = QuestionAnswerAdvisor.builder(vectorStore)
                 .searchRequest(SearchRequest.builder()
@@ -100,6 +95,7 @@ public class AiConfig {
 
         return builder
                 .defaultSystem(PERSONA_SYSTEM_PROMPT)
+                .defaultTools(nutriBotTools)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build(),
                         ragAdvisor
