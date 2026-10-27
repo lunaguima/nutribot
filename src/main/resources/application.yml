@@ -10,20 +10,20 @@ spring:
       ddl-auto: create-drop
     open-in-view: false
 
-  # Modelo de IA: qualquer API compatível com a da OpenAI, configurada por variáveis de ambiente.
-  # Nunca coloque a chave aqui: o repositório é público.
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY:not-set}
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      api-key: ${OPENAI_API_KEY}
+      base-url: ${OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai}
       chat:
-        completions-path: ${OPENAI_COMPLETIONS_PATH:/v1/chat/completions}
+        base-url: ${OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai}
+        completions-path: ${OPENAI_COMPLETIONS_PATH:/chat/completions}
         options:
-          model: ${OPENAI_MODEL:gpt-4o-mini}
+          model: ${OPENAI_MODEL:gemini-2.5-flash}
       embedding:
-        embeddings-path: ${OPENAI_EMBEDDINGS_PATH:/v1/embeddings}
+        base-url: ${OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai}
+        embeddings-path: ${OPENAI_EMBEDDINGS_PATH:/embeddings}
         options:
-          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-004}
 
 server:
   port: 8080

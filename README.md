@@ -1,100 +1,110 @@
-# NutriBot API
+# NutriBot API — Projeto Diamante (Java Advanced)
 
-Projeto base do **Diamante — Java Advanced (segundo semestre)**.
+## Sobre o projeto
 
-A NutriBot é a nutricionista virtual da Clínica Equilíbrio. O projeto base já tem o diário alimentar, a tabela de alimentos e o perfil do paciente. A equipe vai adicionar a parte de IA com **Spring AI**: chat com system prompt, memória de conversa, tool calling, RAG e structured output.
+O **NutriBot API** é uma API desenvolvida em Java para um assistente de nutrição com recursos de Inteligência Artificial. O projeto utiliza o Spring AI para integrar um modelo de linguagem local, executar ferramentas e recuperar informações relevantes por meio de RAG (*Retrieval-Augmented Generation*).
 
-O enunciado completo e os critérios de avaliação estão no deck da atividade.
+A aplicação também permite registrar e consultar refeições, utilizando o banco de dados H2.
 
 ## Equipe
 
-| Nome | RM |
+- **Luna de Carvalho Guimarães** — RM: **562290**
+
+
+
+## Tecnologias utilizadas
+
+- **Java** — linguagem de programação.
+- **Spring Boot** — framework para desenvolvimento da API.
+- **Spring AI** — integração com modelos de Inteligência Artificial.
+- **Ollama** — execução local dos modelos de IA.
+- **Llama 3.2** — modelo de linguagem utilizado no chat.
+- **nomic-embed-text** — modelo utilizado para gerar embeddings.
+- **SimpleVectorStore** — armazenamento vetorial utilizado no RAG.
+- **H2 Database** — banco de dados utilizado para armazenar informações.
+- **REST API** — comunicação por meio de requisições HTTP.
+
+## Modelos de Inteligência Artificial
+
+| Componente | Tecnologia utilizada |
 |---|---|
-|  |  |
-|  |  |
-|  |  |
+| Provedor de IA | Ollama, com API compatível com OpenAI |
+| Modelo de chat | `llama3.2` |
+| Modelo de embeddings | `nomic-embed-text` |
+| Recuperação de informações | RAG |
+| Armazenamento vetorial | `SimpleVectorStore` |
 
-## Como rodar
+## Funcionalidades
 
-Requisitos: Java 25 e Maven (ou o `mvnw` da sua IDE).
+- **Chat com IA:** interação com o assistente por meio de linguagem natural.
+- **Tool Calling:** utilização de ferramentas para executar operações na aplicação.
+- **Memória:** suporte ao gerenciamento de contexto das conversas, conforme implementado no projeto.
+- **RAG:** recuperação de informações relevantes para auxiliar na geração das respostas.
+- **Structured Output:** utilização de respostas estruturadas para facilitar o processamento dos dados.
+- **Registro de refeições:** armazenamento de refeições e consulta dos registros por meio da API.
 
-```bash
-mvn spring-boot:run
-```
+## Configuração do ambiente
 
-A API sobe em `http://localhost:8080`. O console do H2 não está habilitado; os dados iniciais são carregados pelo `DataLoader` a cada inicialização.
+### Pré-requisitos
 
-O arquivo `test.http` tem exemplos de todas as rotas.
+- Java na versão exigida pela configuração do projeto.
+- Ollama instalado e em execução.
+- Modelos de IA baixados no Ollama.
+- IDE compatível com projetos Spring Boot, como IntelliJ IDEA.
 
-## Configurando o modelo
+### 1. Baixar os modelos
 
-O projeto usa o starter da OpenAI do Spring AI, que funciona com **qualquer API compatível com a da OpenAI**. A configuração é feita por variáveis de ambiente — **nunca coloque a chave no código ou no `application.yml`**, o repositório é público.
-
-| Variável | Padrão | Para que serve |
-|---|---|---|
-| `OPENAI_API_KEY` | — | Chave da API |
-| `OPENAI_BASE_URL` | `https://api.openai.com` | Endereço da API (sem `/v1`) |
-| `OPENAI_MODEL` | `gpt-4o-mini` | Modelo de chat |
-| `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Modelo de embeddings (RAG) |
-| `OPENAI_COMPLETIONS_PATH` | `/v1/chat/completions` | Caminho do chat |
-| `OPENAI_EMBEDDINGS_PATH` | `/v1/embeddings` | Caminho dos embeddings |
-
-Exemplos:
+Execute os comandos no terminal:
 
 ```bash
-# OpenAI
-export OPENAI_API_KEY=sk-...
-
-# Ollama local (ollama pull llama3.2 && ollama pull nomic-embed-text)
-export OPENAI_API_KEY=ollama
-export OPENAI_BASE_URL=http://localhost:11434
-export OPENAI_MODEL=llama3.2
-export OPENAI_EMBEDDING_MODEL=nomic-embed-text
-
-# Google Gemini (endpoint compatível com OpenAI)
-export OPENAI_API_KEY=sua-chave-do-ai-studio
-export OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-export OPENAI_COMPLETIONS_PATH=/chat/completions
-export OPENAI_EMBEDDINGS_PATH=/embeddings
-export OPENAI_MODEL=gemini-2.5-flash
-export OPENAI_EMBEDDING_MODEL=gemini-embedding-001
+ollama pull llama3.2
+ollama pull nomic-embed-text
 ```
 
-No IntelliJ, as variáveis podem ser definidas em *Run → Edit Configurations → Environment variables*.
+Verifique se o serviço do Ollama está em execução antes de iniciar a aplicação.
 
-## O que já está pronto
+### 2. Configurar as variáveis de ambiente
 
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/foods?name=` | Busca na tabela de alimentos (valores por 100 g) |
-| GET | `/foods/{id}` | Um alimento |
-| GET | `/meals?date=` | Refeições do dia (sem `date`, hoje) |
-| POST | `/meals` | Registra uma refeição `{date?, mealType, foodId, grams}` → 201 |
-| DELETE | `/meals/{id}` | Remove uma refeição → 204 |
-| GET | `/summary?date=` | Resumo do dia: calorias, macros, meta e o que falta |
-| GET | `/profile` | Perfil do paciente |
-| PUT | `/profile` | Atualiza `{name, goal, dailyCalories}` |
+A aplicação utiliza variáveis de ambiente para configurar a integração com o Ollama, evitando deixar configurações sensíveis diretamente no código-fonte.
 
-- `mealType`: `BREAKFAST`, `LUNCH`, `DINNER` ou `SNACK`.
-- `goal`: `LOSE_WEIGHT`, `MAINTAIN` ou `GAIN_MUSCLE`.
-- Erros sempre no formato `{"error": "..."}`.
+Configure as seguintes variáveis de ambiente na configuração de execução da aplicação:
 
-Os serviços (`FoodService`, `MealService`, `ProfileService`) já têm os métodos que as tools vão precisar, como `FoodService.findByName`, `MealService.log` e `MealService.summary`.
+```bash
+OPENAI_API_KEY=ollama
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_MODEL=llama3.2
+OPENAI_EMBEDDING_MODEL=nomic-embed-text
+OPENAI_COMPLETIONS_PATH=/chat/completions
+OPENAI_EMBEDDINGS_PATH=/embeddings
+```
 
-## Base de conhecimento (RAG)
+**Observação:** `ollama` é utilizado como valor de configuração para a API local compatível com OpenAI, não como uma chave real de acesso. Os nomes das variáveis devem corresponder aos utilizados pela configuração da aplicação.
 
-Os documentos da clínica estão em `src/main/resources/docs/`:
+### 3. Executar a aplicação
 
-- `guia-alimentar.md` — orientações nutricionais da Clínica Equilíbrio
-- `regras-atendimento.md` — o que o NutriBot pode e não pode fazer, horários e contato
+1. Abra o projeto na IDE.
+2. Verifique se o Ollama está em execução e se os modelos necessários foram baixados.
+3. Configure as variáveis de ambiente.
+4. Execute a classe principal do Spring Boot.
+5. Aguarde a inicialização da API e utilize os endpoints implementados para testar as funcionalidades.
 
-Eles devem ser carregados no vector store na inicialização. A escolha do vector store é da equipe.
+## Exemplo de consulta
 
-## O que a equipe vai fazer
+A aplicação disponibiliza a consulta dos registros de refeições pelo endpoint:
 
-| Método | Rota | Corpo | Resposta |
-|---|---|---|---|
-| POST | `/chat` | `{conversationId, message}` | `{answer}` |
-| POST | `/meals/analyze` | `{description}` | `{items: [{food, grams, calories}], totalCalories, protein, carbs, fat}` |
+```http
+GET /meals
+```
 
-O app de testes está em https://github.com/joaocarloslima/nutribot-app.
+A resposta apresenta os registros de refeições armazenados, conforme a estrutura de dados definida na aplicação.
+
+## Segurança e boas práticas
+
+- Não incluir chaves reais de API diretamente no código-fonte.
+- Utilizar variáveis de ambiente para configurar integrações.
+- Não versionar credenciais ou arquivos que contenham segredos.
+- Manter as configurações necessárias para a execução documentadas neste README.
+
+## Objetivo acadêmico
+
+Este projeto foi desenvolvido no contexto da disciplina **Java Advanced**, com o objetivo de aplicar conceitos de desenvolvimento de APIs, integração com Inteligência Artificial, Tool Calling, memória, RAG e processamento de respostas estruturadas utilizando Java e Spring AI.
